@@ -79,39 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // 计算压缩后的大小
             const compressedSize = Math.round((compressedDataUrl.length - 22) * 3 / 4);
             document.getElementById('compressedSize').textContent = formatFileSize(compressedSize);
-
-            // 找到下载图片相关的函数
-            function downloadImage(blob, fileName) {
-                // 创建一个临时的 a 标签用于下载
-                const link = document.createElement('a');
-
-                // 创建 blob URL
-                const blobUrl = window.URL.createObjectURL(blob);
-
-                // 移动端兼容处理
-                if (/mobile|android|iphone/i.test(navigator.userAgent)) {
-                    // 移动端采用新窗口打开方式
-                    window.open(blobUrl, '_blank');
-                } else {
-                    // PC端使用常规下载方式
-                    link.href = blobUrl;
-                    link.download = fileName;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                }
-
-                // 清理 blob URL
-                setTimeout(() => {
-                    window.URL.revokeObjectURL(blobUrl);
-                }, 100);
-            }
-
-            // 在转换完成后调用下载函数时
-            canvas.toBlob((blob) => {
-                const fileName = '转换后的图片.png';
-                downloadImage(blob, fileName);
-            }, 'image/png');
         };
     }
 
@@ -125,10 +92,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 处理下载
     downloadBtn.addEventListener('click', () => {
-        const link = document.createElement('a');
-        link.download = 'compressed-image.jpg';
-        link.href = compressedImage.src;
-        link.click();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = compressedImage.naturalWidth;
+        canvas.height = compressedImage.naturalHeight;
+
+        ctx.drawImage(compressedImage, 0, 0);
+
+        // 获取压缩后的 base64 数据
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', qualitySlider.value / 100);
+
+        if (/mobile|android|iphone/i.test(navigator.userAgent)) {
+            // 移动端：打开新窗口显示图片
+            const newWindow = window.open('');
+            newWindow.document.write('<img src="' + compressedDataUrl + '" alt="压缩后的图片">');
+            newWindow.document.write('<div style="text-align: center; margin-top: 20px;">长按图片可以保存</div>');
+        } else {
+            // PC端：直接下载
+            const link = document.createElement('a');
+            link.href = compressedDataUrl;
+            link.download = 'compressed-image.jpg';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     });
 
     // 格式化文件大小
